@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat - {{ room_id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            <h2>Room: {{ room_id }}</h2>
+            <button onclick="leaveRoom()" class="leave-btn">Leave Room</button>
+        </div>
+        <div id="messages" class="messages"></div>
+        <div id="typing" class="typing"></div>
+        <div class="input-area">
+            <input id="username-input" placeholder="Your name" maxlength="20">
+            <input id="message" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    <script>
+        const socket = io();
+        const room_id = '{{ room_id }}'.toUpperCase();
+        const username = prompt('Enter your name:') || 'Anonymous';
+        document.getElementById('username-input').value = username;
+        socket.emit('join', {room: room_id, username});
+
+        socket.on('messages', (data) => {
+            displayMessages(data.messages);
+        });
+        socket.on('message', (msg) => {
+            displayMessage(msg);
+        });
+        socket.on('status', (data) => {
+            addSystemMessage(data.msg);
+        });
+        socket.on('room_deleted', () => {
+            alert('Room ended. All data deleted.');
+            window.location.href = '/';
+        });
+
+        function sendMessage() {
+            const text = document.getElementById('message').value.trim();
+            if (text) {
+                socket.emit('message', {
+                    room: room_id,
+                    user: username,
+                    text: text,
+                    time: new Date().toISOString()
+                });
+                document.getElementById('message').value = '';
+            }
+        }
+        function displayMessages(msgs) {
+            const container = document.getElementById('messages');
+            container.innerHTML = '';
+            msgs.forEach(msg => displayMessage(msg));
+        }
+        function displayMessage(msg) {
+            const div = document.createElement('div');
+            div.className = 'message animate-slide-up';
+            div.innerHTML = `<strong>${msg.user}:</strong> ${msg.text} <span class="time">${new Date(msg.time).toLocaleTimeString()}</span>`;
+            document.getElementById('messages').appendChild(div);
+            div.scrollIntoView();
+        }
+        function addSystemMessage(msg) {
+            const div = document.createElement('div');
+            div.className = 'system-msg animate-pulse';
+            div.textContent = msg;
+            document.getElementById('messages').appendChild(div);
+            div.scrollIntoView();
+        }
+        function leaveRoom() {
+            socket.emit('leave', {room: room_id});
+        }
+    </script>
+</body>
+</html>

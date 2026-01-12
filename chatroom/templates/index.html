@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Personal Chat Room</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="create-card animate-slide-down">
+            <h1>🎉 Personal Chat Room</h1>
+            <p>Create a private room & share the link!</p>
+            <input id="username" placeholder="Your name (optional)" maxlength="20">
+            <button onclick="createRoom()">Create Room</button>
+            <div id="room-link" style="display:none;">
+                <p>Share this link: <a id="link" href="#" target="_blank"></a></p>
+            </div>
+        </div>
+        <div class="join-card">
+            <h3>Or join existing room:</h3>
+            <input id="roomcode" placeholder="Enter 6-char code" maxlength="6">
+            <button onclick="joinRoom()">Join</button>
+        </div>
+    </div>
+<script>
+    const socket = io();
+    
+    function createRoom() {
+        const username = document.getElementById('username').value || 'Anonymous';
+        socket.emit('create_room', {username: username});
+        document.querySelector('button').textContent = 'Creating...';
+    }
+    
+    socket.on('room_created', (data) => {
+        document.getElementById('link').textContent = data.link;
+        document.getElementById('link').href = data.link;
+        document.getElementById('room-link').style.display = 'block';
+        document.querySelector('.create-card button').textContent = 'Created!';
+        document.querySelector('.create-card').classList.add('animate-pulse');
+    });
+    
+    socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        alert('Connection failed. Check console.');
+    });
+    
+    function joinRoom() {
+        const code = document.getElementById('roomcode').value.toUpperCase();
+        if (code.length === 6) {
+            window.location.href = `chat/${code}`;
+        } else {
+            alert('Enter valid 6-char code');
+        }
+    }
+</script>
+
+</body>
+</html>
